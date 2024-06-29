@@ -3,9 +3,11 @@
 #include <QDebug>
 #include <QThread>
 #include <QRandomGenerator>
+#include <string.h>
 
 unsigned short crc16(unsigned char *pcBlock, unsigned short len);
-template<typename T> QByteArray translateNumToByteArray(T num);
+QByteArray uintToQByteArray(const unsigned int& num);
+QByteArray ushortToQByteArray(const unsigned short& num);
 
 int main(int argc, char *argv[])
 {
@@ -29,18 +31,18 @@ int main(int argc, char *argv[])
         QByteArray messageData;
         if (type == 1) { // число
             qint32 num = random.generate();
-            messageData = translateNumToByteArray<qint32>(num);
+            messageData = uintToQByteArray((quint32)num);
         } else if (type == 2) { // text
             messageData = text.toUtf8();
         }
         unsigned short size = messageData.size();
-        QByteArray sizeBytes = translateNumToByteArray<unsigned short>(size);
+        QByteArray sizeBytes = ushortToQByteArray(size);
         data.append(address);
         data.append(type);
         data.append(sizeBytes);
         data.append(messageData);
         unsigned short crc = crc16((unsigned char*)data.data(), data.size());
-        QByteArray crcBytes = translateNumToByteArray<unsigned short>(crc);
+        QByteArray crcBytes = ushortToQByteArray(crc);
         data.append(crcBytes);
         serial.write(data);
         serial.flush();
@@ -63,13 +65,22 @@ unsigned short crc16(unsigned char *pcBlock, unsigned short len)
     return crc;
 }
 
-template<typename T> QByteArray translateNumToByteArray(T num) {
-    QByteArray bytes;
-    bytes.resize( sizeof(T) );
-    for (int i = bytes.size() - 1; i > -1; --i) {
-        bytes[i] = num & 0xFF;
-        num = num >> 8;
-    }
+QByteArray uintToQByteArray(const quint32& num) {
+    QByteArray arr;
+    arr.resize(4);
+    arr[0] = (num >> 24) & 0xff;
+    arr[1] = (num >> 16) & 0xff;
+    arr[2] = (num >> 8) & 0xff;
+    arr[3] = num & 0xff;
 
-    return bytes;
+    return arr;
+}
+
+QByteArray ushortToQByteArray(const unsigned short& num) {
+    QByteArray arr;
+    arr.resize(2);
+    arr[0] = (num >> 8) & 0xff;
+    arr[1] = num & 0xff;
+
+    return arr;
 }
